@@ -1,0 +1,25 @@
+# Arquivos de build do devkitARM
+*.elf
+*.gba
+*.agb
+*.o
+*.d
+*.map
+*.sav
+
+# Pasta de build (caso você use)
+build/
+
+# Arquivos temporários do editor
+*.swp
+*.swo
+
+# Configurações do VS Code (opcional)
+.vscode/
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+
+# Backup e editor
+*~
