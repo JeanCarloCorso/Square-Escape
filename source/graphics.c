@@ -25,12 +25,14 @@ void clearScreenArea(u16 color, int yStart, int yEnd)
     if(yEnd > SCREEN_HEIGHT) yEnd = SCREEN_HEIGHT;
     if(yStart >= yEnd) return;
 
-    int linhas = yEnd - yStart;
-    int totalPixels = linhas * SCREEN_WIDTH;
+    static u16 color_fill;
+    color_fill = color;
 
-    DMA3COPY(
-        &color,
-        videoBuffer + (yStart * SCREEN_WIDTH),
-        totalPixels | DMA16 | DMA_SRC_FIXED
-    );
+    for (int y = yStart; y < yEnd; y++) {
+        DMA3COPY(
+            &color_fill,
+            &videoBuffer[y * SCREEN_WIDTH],
+            SCREEN_WIDTH | DMA16 | DMA_SRC_FIXED
+        );
+    }
 }
