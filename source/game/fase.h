@@ -10,5 +10,6 @@ void inicializarFase();
 void atualizarFase(int score);
 int getNumeroInimigos();
 int getFaseAtual();
+int jogoFoiFinalizado();
 
 #endif

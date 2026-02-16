@@ -3,6 +3,7 @@
 #include "menu.h"
 #include "gameover.h"
 #include <gba.h>
+#include "vitoria.h"
 
 int main(void) {
     GameState state = STATE_MENU;
@@ -24,6 +25,12 @@ int main(void) {
                 gameOverInit();
                 while(state == STATE_GAMEOVER) {
                     gameOverUpdate(&state);
+                }
+                break;
+            case STATE_VITORIA:
+                vitoriaInit();
+                while(state == STATE_VITORIA) {
+                    vitoriaUpdate(&state);
                 }
                 break;
         }

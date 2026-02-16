@@ -17,6 +17,8 @@
 // Variáveis globais
 // ===============================
 Player player;
+static int sequenciaVitoria = 0;
+static float velocidadeFinal = 0;
 
 // ===============================
 // Barras fixas
@@ -48,6 +50,9 @@ void gameInit() {
     playerInit(&player, 20, SCREEN_HEIGHT/2, 3);
     score = 0;
 
+    sequenciaVitoria = 0;
+    velocidadeFinal = 0;
+
     desenhaBarraSuperior();
     desenhaBarraInferior();
 
@@ -62,6 +67,31 @@ void gameUpdate(GameState* state) {
 
     scanKeys();
     u16 keys = keysHeld();
+
+
+    if(score >= MAX_SCORE && !sequenciaVitoria) {
+        sequenciaVitoria = 1;
+        velocidadeFinal = 2.0;
+    }
+
+    if(sequenciaVitoria) {
+
+        velocidadeFinal += 0.2;
+        player.x += velocidadeFinal;
+
+        clearScreenArea(RGB5(0,0,0),
+                        LIMITE_SUPERIOR_JOGO,
+                        LIMITE_INFERIOR_JOGO);
+
+        playerDesenha(&player);
+
+        if(player.x > SCREEN_WIDTH) {
+            sequenciaVitoria = 0;
+            *state = STATE_VITORIA;
+        }
+
+        return;
+    }
 
     playerUpdate(&player, keys);
     playerProtegeLimites(&player);
@@ -83,6 +113,7 @@ void gameUpdate(GameState* state) {
     playerDesenhaVidas(&player);
     desenhaScore();
     desenhaHighScore();
+    inicializarFase();
 
     atualizarFase(score);
 

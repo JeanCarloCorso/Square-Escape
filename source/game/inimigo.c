@@ -165,7 +165,7 @@ void verificaColisaoTiros(Player* player) {
             {
                 player->tiros[i].ativo = false;
                 listaInimigos[j].explodindo = 1;
-                score += 10;
+                score += PONTUACAO_INIMIGO;
                 break;
             }
         }

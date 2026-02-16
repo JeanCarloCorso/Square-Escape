@@ -16,6 +16,7 @@ void playerInit(Player* p, int startX, int startY, int vidas) {
     p->y = startY;
     p->vidas = vidas;
     p->cooldownTiro = 0;
+    vidasAnteriores = -1;
 
     for(int i = 0; i < MAX_TIRO; i++)
         p->tiros[i].ativo = false;

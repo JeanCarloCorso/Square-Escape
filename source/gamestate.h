@@ -4,7 +4,8 @@
 typedef enum {
     STATE_MENU,
     STATE_GAME,
-    STATE_GAMEOVER
+    STATE_GAMEOVER,
+    STATE_VITORIA
 } GameState;
 
 #endif
