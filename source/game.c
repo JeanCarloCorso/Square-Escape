@@ -28,6 +28,7 @@ typedef struct {
     int x;
     int y;
     bool ativo;
+    int explodindo;
 } Inimigo;
 
 Inimigo listaInimigos[MAX_INIMIGOS];
@@ -126,6 +127,7 @@ void inicializarInimigos() {
 
     for(int i = 0; i < MAX_INIMIGOS; i++) {
 
+        listaInimigos[i].explodindo = 0;
         listaInimigos[i].x = SCREEN_WIDTH + (i * 40);
 
         int alturaUtil =
@@ -147,6 +149,29 @@ void atualizarInimigos() {
         if(!listaInimigos[i].ativo)
             continue;
 
+        // Se está explodindo
+        if(listaInimigos[i].explodindo > 0) {
+
+            listaInimigos[i].explodindo++;
+
+            if(listaInimigos[i].explodindo > 15) { // duração explosão
+                listaInimigos[i].explodindo = 0;
+
+                listaInimigos[i].x = SCREEN_WIDTH;
+
+                int alturaUtil =
+                    LIMITE_INFERIOR_JOGO -
+                    LIMITE_SUPERIOR_JOGO -
+                    ALTURA_INIMIGO;
+
+                listaInimigos[i].y =
+                    (rand() % alturaUtil) + LIMITE_SUPERIOR_JOGO;
+            }
+
+            continue;
+        }
+
+        // Movimento normal
         listaInimigos[i].x--;
 
         if(listaInimigos[i].x + LARGURA_INIMIGO <= 0) {
@@ -163,6 +188,49 @@ void atualizarInimigos() {
 
             score += 10;
         }
+    }
+}
+
+void desenhaExplosao(int baseX, int baseY, int frame) {
+
+    static u16 cor1;
+    static u16 cor2;
+
+    cor1 = RGB5(31, 20, 0);  // laranja
+    cor2 = RGB5(31, 31, 0);  // amarelo
+
+    int raio = frame;  // cresce com o tempo
+
+    for(int y = -raio; y <= raio; y++) {
+
+        int drawY = baseY + y;
+        if(drawY < 0 || drawY >= SCREEN_HEIGHT) continue;
+
+        int largura = raio - abs(y);
+
+        int drawX = baseX - largura;
+
+        if(drawX < 0) drawX = 0;
+        if(drawX + largura*2 >= SCREEN_WIDTH)
+            largura = (SCREEN_WIDTH - drawX) / 2;
+
+        if(largura > 0) {
+
+            DMA3COPY(
+                &cor1,
+                &videoBuffer[drawY * SCREEN_WIDTH + drawX],
+                largura*2 | DMA16 | DMA_SRC_FIXED
+            );
+        }
+    }
+
+    // núcleo brilhante
+    if(raio > 2) {
+        DMA3COPY(
+            &cor2,
+            &videoBuffer[baseY * SCREEN_WIDTH + baseX - 2],
+            4 | DMA16 | DMA_SRC_FIXED
+        );
     }
 }
 
@@ -192,6 +260,15 @@ void desenhaInimigos() {
 
             int inicio = 0;
             int largura = 0;
+
+            if(listaInimigos[i].explodindo > 0) {
+                desenhaExplosao(
+                    baseX + LARGURA_INIMIGO/2,
+                    baseY + ALTURA_INIMIGO/2,
+                    listaInimigos[i].explodindo
+                );
+                continue;
+            }
 
             // =========================
             // Formato base
@@ -289,7 +366,6 @@ void desenhaInimigos() {
     }
 }
 
-
 // ===============================
 // Colisão
 // ===============================
@@ -300,13 +376,19 @@ void verificaColisoes() {
         if(!listaInimigos[i].ativo)
             continue;
 
+        // 🔥 NÃO testa colisão se já está explodindo
+        if(listaInimigos[i].explodindo > 0)
+            continue;
+
         if(playerX < listaInimigos[i].x + LARGURA_INIMIGO &&
            playerX + LARGURA_NAVE > listaInimigos[i].x &&
            playerY < listaInimigos[i].y + ALTURA_INIMIGO &&
            playerY + ALTURA_NAVE > listaInimigos[i].y)
         {
             vidas--;
-            listaInimigos[i].x = SCREEN_WIDTH;
+
+            listaInimigos[i].explodindo = 1;
+            listaInimigos[i].x += 10;
         }
     }
 }
