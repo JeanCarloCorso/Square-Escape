@@ -6,11 +6,13 @@
 
 int main(void) {
     GameState state = STATE_MENU;
-    menuInit();
     while(1) {
         switch(state) {
             case STATE_MENU:
-                menuUpdate(&state);
+                menuInit();
+                while(state == STATE_MENU) {
+                    menuUpdate(&state);
+                }
                 break;
             case STATE_GAME:
                 gameInit();

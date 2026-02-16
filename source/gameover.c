@@ -1,22 +1,18 @@
 #include <gba.h>
 #include <stdio.h>
 #include "gameover.h"
+#include "graphics.h"
+#include "game_over.h"
 
 void gameOverInit()
 {
-    REG_DISPCNT = MODE_0 | BG0_ENABLE;
+    REG_DISPCNT = MODE_3 | BG2_ENABLE;
 
-    consoleDemoInit();
-
-    iprintf("\x1b[2J");
-
-    iprintf("\x1b[2;1H===========================");
-    iprintf("\x1b[3;1H                           ");
-    iprintf("\x1b[4;1H     G A M E   O V E R     ");
-    iprintf("\x1b[5;1H                           ");
-    iprintf("\x1b[6;1H===========================");
-
-    iprintf("\x1b[14;1HPressione START para voltar ao menu!");
+    DMA3COPY(
+        game_overBitmap,
+        videoBuffer,
+        SCREEN_WIDTH * SCREEN_HEIGHT | DMA16
+    );
 }
 
 void gameOverUpdate(GameState* state)
