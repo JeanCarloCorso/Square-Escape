@@ -76,8 +76,6 @@ void atualizarInimigos() {
             listaInimigos[i].x = SCREEN_WIDTH;
             int alturaUtil = LIMITE_INFERIOR_JOGO - LIMITE_SUPERIOR_JOGO - ALTURA_INIMIGO;
             listaInimigos[i].y = (rand() % alturaUtil) + LIMITE_SUPERIOR_JOGO;
-
-            score += 10;
         }
     }
 }

@@ -11,6 +11,7 @@
 #include "game_constantes.h"
 #include "game/inimigo.h"
 #include "game/fase.h"
+#include "score.h"
 
 // ===============================
 // Variáveis globais
@@ -34,37 +35,6 @@ void desenhaBarraInferior() {
         videoBuffer + SCREEN_WIDTH * (SCREEN_HEIGHT - ALTURA_PLACAR),
         SCREEN_WIDTH * ALTURA_PLACAR | DMA16
     );
-}
-
-// ===============================
-// Score
-// ===============================
-void desenhaScore() {
-    static int scoreAnterior = -1;
-
-    if(score == scoreAnterior && scoreAnterior >= 0) return;
-    scoreAnterior = score;
-
-    const char* texto = "SCORE:";
-    char buf[6];
-    sprintf(buf, "%d", score);
-
-    int xStart = SCREEN_WIDTH - (strlen(texto)*6 + 5*6 + 2) - 2;
-    int yStart = 2;
-
-    int larguraTotal = strlen(texto)*6 + 5*6 + 2;
-    int alturaTotal = 6;
-
-    for(int y = yStart; y < yStart + alturaTotal; y++)
-        for(int x = xStart; x < xStart + larguraTotal; x++)
-            setPixel(x, y, COR_FUNDO);
-
-    for(int i = 0; texto[i]; i++)
-        drawChar(xStart + i*6, yStart, texto[i], COR_SCORE);
-
-    int xValor = xStart + strlen(texto)*6 + 2;
-    for(int i = 0; buf[i]; i++)
-        drawChar(xValor + i*6, yStart, buf[i], COR_SCORE);
 }
 
 // ===============================
@@ -112,6 +82,7 @@ void gameUpdate(GameState* state) {
 
     playerDesenhaVidas(&player);
     desenhaScore();
+    desenhaHighScore();
 
     atualizarFase(score);
 
