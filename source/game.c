@@ -2,9 +2,11 @@
 #include <gba.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "graphics.h"
 #include "barra_superior.h"
 #include "barra_inferior.h"
+#include "font.h"
 
 // ===============================
 // Dimensões
@@ -26,6 +28,10 @@
 #define TIRO_LARGURA 3
 #define TIRO_ALTURA 3
 #define COOLDOWN_TIRO 20
+
+#define COR_VIDA RGB5(31,0,0)   // vermelho
+#define COR_SCORE RGB5(31,31,31) // branco
+#define COR_FUNDO RGB5(0,0,0)    // preto
 
 // ===============================
 // Estrutura inimigo
@@ -464,6 +470,85 @@ void verificaColisoes() {
     }
 }
 
+static int vidasAnteriores = -1;
+
+void desenhaVidas() {
+    if(vidas == vidasAnteriores && vidas >= 0) return;
+    vidasAnteriores = vidas;
+
+    const char* texto = "VIDAS:";
+    int xTexto = 2;
+    int yTexto = 2;
+
+    int larguraTexto = strlen(texto)*6;
+    int larguraTotal = larguraTexto + 5*6 + 4*2; // 5 vidas max, 6px cada, 2px espaço
+    int alturaTotal = 6;
+
+    // Desenha fundo atrás do texto + retângulos
+    for(int y = yTexto; y < yTexto + alturaTotal; y++){
+        for(int x = xTexto; x < xTexto + larguraTotal; x++){
+            setPixel(x, y, COR_FUNDO);
+        }
+    }
+
+    // Desenha texto
+    for(int i = 0; texto[i]; i++){
+        drawChar(xTexto + i*6, yTexto, texto[i], COR_SCORE);
+    }
+
+    int margem = xTexto + larguraTexto + 4;
+    int largura = 6;
+    int altura = 6;
+    int espacamento = 2;
+
+    // Desenha retângulos de vidas
+    for(int i = 0; i < vidas; i++){
+        int x0 = margem + i * (largura + espacamento);
+        int y0 = yTexto;
+        for(int y = 0; y < altura; y++){
+            for(int x = 0; x < largura; x++){
+                setPixel(x0 + x, y0 + y, COR_VIDA);
+            }
+        }
+    }
+}
+
+static int scoreAnterior = -1;
+
+void desenhaScore() {
+    if(score == scoreAnterior && scoreAnterior >= 0) return;
+    scoreAnterior = score;
+
+    const char* texto = "SCORE:";
+    char buf[6]; // 5 dígitos + '\0'
+    sprintf(buf, "%d", score);
+
+    int xStart = SCREEN_WIDTH - (strlen(texto)*6 + 5*6 + 2) - 2; // espaço total
+    int yStart = 2;
+
+    int larguraTotal = strlen(texto)*6 + 5*6 + 2; // texto + 5 dígitos + 2px
+    int alturaTotal = 6;
+
+    // Desenha fundo atrás do texto + score
+    for(int y = yStart; y < yStart + alturaTotal; y++){
+        for(int x = xStart; x < xStart + larguraTotal; x++){
+            setPixel(x, y, COR_FUNDO);
+        }
+    }
+
+    // Desenha texto
+    for(int i = 0; texto[i]; i++){
+        drawChar(xStart + i*6, yStart, texto[i], COR_SCORE);
+    }
+
+    // Desenha score
+    int xValor = xStart + strlen(texto)*6 + 2;
+    for(int i = 0; buf[i]; i++){
+        drawChar(xValor + i*6, yStart, buf[i], COR_SCORE);
+    }
+}
+
+
 // ===============================
 // Init
 // ===============================
@@ -520,6 +605,9 @@ void gameUpdate(GameState* state) {
     desenhaInimigos();
     desenhaTiros();
     desenhaPlayer();
+
+    desenhaVidas();
+    desenhaScore(); 
 
     if(vidas <= 0)
         *state = STATE_GAMEOVER;
