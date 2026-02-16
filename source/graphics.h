@@ -11,5 +11,6 @@ extern u16* videoBuffer;
 
 void setPixel(int x, int y, u16 color);
 void clearScreen(u16 color);
+void clearScreenArea(u16 color, int yStart, int yEnd);
 
 #endif

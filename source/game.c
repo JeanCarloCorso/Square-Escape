@@ -3,56 +3,79 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "graphics.h"
+#include "barra_superior.h"
+#include "barra_inferior.h"
 
-#define TAMANHO_SPRITE_PLAYER 10
+// Dimensões do player
+#define LARGURA_NAVE 24
+#define ALTURA_NAVE  16
+// Dimensões do inimigo
 #define TAMANHO_SPRITE_ITEM 5
-#define MAX_PONTOS 5
+
+#define ALTURA_PLACAR 25
+#define LIMITE_SUPERIOR_JOGO (ALTURA_PLACAR + 5)
+#define LIMITE_INFERIOR_JOGO (SCREEN_HEIGHT - ALTURA_PLACAR - 5)
 
 // Variáveis globais
 int playerX;
 int playerY;
-int itemX;
-int itemY;
-int pontuacao;
+int inimigoX;
+int inimigoY;
+int score;
+int vidas;
 
-void limpaTela(){
-    static u16 cor = RGB5(0,0,0);
-    DMA3COPY(&cor, videoBuffer, (SCREEN_WIDTH * SCREEN_HEIGHT) | DMA16 | DMA_SRC_FIXED);
+void desenhaBarraSuperior(){
+    DMA3COPY(
+        barra_superiorBitmap,
+        videoBuffer,
+        SCREEN_WIDTH * ALTURA_PLACAR | DMA16
+    );
 }
 
-void protegeLimites()
-{
+void desenhaBarraInferior(){
+    DMA3COPY(
+        barra_inferiorBitmap,
+        videoBuffer + SCREEN_WIDTH * (SCREEN_HEIGHT - ALTURA_PLACAR),
+        SCREEN_WIDTH * ALTURA_PLACAR | DMA16
+    );
+}
+
+void protegeLimites(){
     if(playerX < 0) playerX = 0;
-    if(playerX > SCREEN_WIDTH - TAMANHO_SPRITE_PLAYER)
-        playerX = SCREEN_WIDTH - TAMANHO_SPRITE_PLAYER;
+    if(playerX > SCREEN_WIDTH - LARGURA_NAVE)
+        playerX = SCREEN_WIDTH - LARGURA_NAVE;
 
-    if(playerY < 0) playerY = 0;
-    if(playerY > SCREEN_HEIGHT - TAMANHO_SPRITE_PLAYER)
-        playerY = SCREEN_HEIGHT - TAMANHO_SPRITE_PLAYER;
+    if(playerY < LIMITE_SUPERIOR_JOGO) playerY = LIMITE_SUPERIOR_JOGO;
+    if(playerY > LIMITE_INFERIOR_JOGO - ALTURA_NAVE)
+        playerY = LIMITE_INFERIOR_JOGO - ALTURA_NAVE;
 }
 
-void gerarNovoItem()
-{
-    itemX = rand() % (SCREEN_WIDTH - TAMANHO_SPRITE_ITEM);
-    itemY = rand() % (SCREEN_HEIGHT - TAMANHO_SPRITE_ITEM);
+void gerarNovoInimigo(){
+    inimigoX = SCREEN_WIDTH - TAMANHO_SPRITE_ITEM;
+
+    int alturaUtil = LIMITE_INFERIOR_JOGO - LIMITE_SUPERIOR_JOGO;
+    int intervaloMaximo = alturaUtil - TAMANHO_SPRITE_ITEM;
+    inimigoY = (rand() % intervaloMaximo) + LIMITE_SUPERIOR_JOGO;
 }
 
-void desenhaItem()
-{
-    for(int y = itemY; y < itemY + TAMANHO_SPRITE_ITEM; y++)
-        for(int x = itemX; x < itemX + TAMANHO_SPRITE_ITEM; x++)
+void desenhaInimigo(){
+    for(int y = inimigoY; y < inimigoY + TAMANHO_SPRITE_ITEM; y++)
+        for(int x = inimigoX; x < inimigoX + TAMANHO_SPRITE_ITEM; x++)
             setPixel(x, y, RGB5(0,31,0));
 }
 
-void verificaColisao()
-{
-    if(playerX < itemX + TAMANHO_SPRITE_ITEM &&
-       playerX + TAMANHO_SPRITE_PLAYER > itemX &&
-       playerY < itemY + TAMANHO_SPRITE_ITEM &&
-       playerY + TAMANHO_SPRITE_PLAYER > itemY)
+void verificaColisao(){
+    if(playerX < inimigoX + TAMANHO_SPRITE_ITEM &&
+       playerX + LARGURA_NAVE > inimigoX &&
+       playerY < inimigoY + TAMANHO_SPRITE_ITEM &&
+       playerY + ALTURA_NAVE > inimigoY)
     {
-        pontuacao--;
-        gerarNovoItem();
+        vidas--;
+        gerarNovoInimigo();
+    }
+    else if(inimigoX + TAMANHO_SPRITE_ITEM <= 0) {
+        score += 10;
+        gerarNovoInimigo();
     }
 }
 
@@ -61,43 +84,66 @@ void gameInit() {
     irqEnable(IRQ_VBLANK);
     REG_DISPCNT = MODE_3 | BG2_ENABLE;
     
-    playerX = 100;
-    playerY = 60;
-    itemX = 50;
-    itemY = 80;
-    pontuacao = MAX_PONTOS;
+    playerX = 0;
+    playerY = 0;
 
-    gerarNovoItem();
+    score = 0;
+    vidas = 3;
+
+    desenhaBarraSuperior();
+    desenhaBarraInferior();
+
+    gerarNovoInimigo();
 }
 
-void desenhaPlacar(GameState* state) {
-    int larguraBarra = 10;   // largura de cada barra
-    int alturaBarra = 10;    // altura de cada barra
-    int xStart = 5;          // posição inicial X
-    int yStart = 5;          // posição inicial Y
-    u16 corBarra = RGB5(0,31,0); // verde
+void desenhaPlayer() {
+    protegeLimites();
+    for(int y = 0; y < ALTURA_NAVE; y++) {
+        for(int x = 0; x < LARGURA_NAVE; x++) {
 
-    // Limpa a área do placar antes de desenhar
-    for(int y = yStart; y < yStart + alturaBarra; y++) {
-        for(int x = xStart; x < xStart + larguraBarra * MAX_PONTOS; x++) {
-            setPixel(x, y, RGB5(0,0,0)); // fundo preto
-        }
-    }
+            int drawX = playerX + x;
+            int drawY = playerY + y;
 
-    // Desenha as barras restantes
-    for(int i = 0; i < pontuacao; i++) {
-        for(int y = yStart; y < yStart + alturaBarra; y++) {
-            for(int x = xStart + i*larguraBarra; x < xStart + (i+1)*larguraBarra; x++) {
-                setPixel(x, y, corBarra);
+            if ((unsigned)drawX >= SCREEN_WIDTH || (unsigned)drawY >= SCREEN_HEIGHT) {
+                continue; 
+            }
+
+            u16 cor = 0;
+            bool temPixel = false;
+
+            // CABINE (Azul)
+            if ((x > 10 && x < 15) && (y > 5 && y < 9)) {
+                cor = RGB5(0, 0, 31);
+                temPixel = true;
+            }
+            // BICO (Cinza claro)
+            else if ((x > 16) && (y > 4 && y < 11)) {
+                cor = RGB5(25, 25, 25);
+                temPixel = true;
+            }
+            // CORPO PRINCIPAL (Cinza médio)
+            else if ((x > 6 && x <= 16) && (y > 3 && y < 12)) {
+                cor = RGB5(18, 18, 18);
+                temPixel = true;
+            }
+            // ASAS (Cinza escuro)
+            else if ((x > 2 && x < 14) && ((y > 1 && y <= 4) || (y >= 11 && y < 14))) {
+                cor = RGB5(12, 12, 12);
+                temPixel = true;
+            }
+            // PROPULSOR (Laranja/Fogo)
+            else if ((x <= 6) && (y > 6 && y < 9)) {
+                cor = RGB5(31, 10, 0);
+                temPixel = true;
+            }
+
+            if (temPixel) {
+                setPixel(drawX, drawY, cor);
             }
         }
     }
-
-    // Se zerou, mostra GAME OVER
-    if(pontuacao <= 0) {
-        *state = STATE_GAMEOVER;
-    }
 }
+
 
 void gameUpdate(GameState* state) {
     VBlankIntrWait();
@@ -111,15 +157,16 @@ void gameUpdate(GameState* state) {
     if(keys & KEY_DOWN)  playerY++;
 
     protegeLimites();
-
-    limpaTela();
-
-    desenhaItem();
-
-    for(int y = playerY; y < playerY + TAMANHO_SPRITE_PLAYER; y++)
-        for(int x = playerX; x < playerX + TAMANHO_SPRITE_PLAYER; x++)
-            setPixel(x, y, RGB5(31,0,0));
-
     verificaColisao();
-    desenhaPlacar(state);
+
+    clearScreenArea(RGB5(0,0,0), ALTURA_PLACAR, SCREEN_HEIGHT - ALTURA_PLACAR);
+
+    inimigoX--;
+
+    desenhaInimigo();
+    desenhaPlayer();
+
+    if(vidas <= 0) {
+        *state = STATE_GAMEOVER;
+    }
 }

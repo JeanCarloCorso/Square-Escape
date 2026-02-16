@@ -5,12 +5,6 @@
 #include <gba.h>
 
 int main(void) {
-    // irqInit();
-    // irqEnable(IRQ_VBLANK);
-
-    // consoleDemoInit();
-    // REG_DISPCNT = MODE_3 | BG2_ENABLE;
-
     GameState state = STATE_MENU;
     menuInit();
     while(1) {
