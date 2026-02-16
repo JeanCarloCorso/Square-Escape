@@ -17,8 +17,9 @@
 // Variáveis globais
 // ===============================
 Player player;
+
 static int sequenciaVitoria = 0;
-static float velocidadeFinal = 0;
+static int velocidadeFinal = 0;
 
 // ===============================
 // Barras fixas
@@ -71,12 +72,12 @@ void gameUpdate(GameState* state) {
 
     if(score >= MAX_SCORE && !sequenciaVitoria) {
         sequenciaVitoria = 1;
-        velocidadeFinal = 2.0;
+        velocidadeFinal = 2;
     }
 
     if(sequenciaVitoria) {
 
-        velocidadeFinal += 0.2;
+        velocidadeFinal += 1;
         player.x += velocidadeFinal;
 
         clearScreenArea(RGB5(0,0,0),
