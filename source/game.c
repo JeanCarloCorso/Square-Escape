@@ -20,6 +20,12 @@
 #define LIMITE_INFERIOR_JOGO (SCREEN_HEIGHT - ALTURA_PLACAR - 5)
 
 #define MAX_INIMIGOS 7
+#define MAX_TIRO 5
+
+#define VELOCIDADE_TIRO 3
+#define TIRO_LARGURA 3
+#define TIRO_ALTURA 3
+#define COOLDOWN_TIRO 20
 
 // ===============================
 // Estrutura inimigo
@@ -32,6 +38,18 @@ typedef struct {
 } Inimigo;
 
 Inimigo listaInimigos[MAX_INIMIGOS];
+
+// ===============================
+// Estrutura tiro
+// ===============================
+typedef struct {
+    int x;
+    int y;
+    bool ativo;
+} Tiro;
+
+Tiro tiros[MAX_TIRO];
+int cooldownTiro = 0;
 
 // ===============================
 // Variáveis globais
@@ -121,6 +139,62 @@ void desenhaPlayer(){
 }
 
 // ===============================
+// Tiros
+// ===============================
+void inicializarTiros(){
+    for(int i = 0; i < MAX_TIRO; i++)
+        tiros[i].ativo = false;
+    cooldownTiro = 0;
+}
+
+void disparaTiro(){
+    if(cooldownTiro > 0) return;
+
+    for(int i = 0; i < MAX_TIRO; i++){
+        if(!tiros[i].ativo){
+            tiros[i].x = playerX + LARGURA_NAVE; // sai da frente da nave
+            tiros[i].y = playerY + ALTURA_NAVE / 2 - TIRO_ALTURA/2;
+            tiros[i].ativo = true;
+            cooldownTiro = COOLDOWN_TIRO;
+            break;
+        }
+    }
+}
+
+void atualizarTiros(){
+    if(cooldownTiro > 0) cooldownTiro--;
+
+    for(int i = 0; i < MAX_TIRO; i++){
+        if(!tiros[i].ativo) continue;
+
+        tiros[i].x += VELOCIDADE_TIRO;
+
+        if(tiros[i].x > SCREEN_WIDTH)
+            tiros[i].ativo = false;
+    }
+}
+
+void desenhaTiros(){
+    u16 corTiro = RGB5(31,0,0); // vermelho
+
+    for(int i = 0; i < MAX_TIRO; i++){
+        if(!tiros[i].ativo) continue;
+
+        for(int dy = 0; dy < TIRO_ALTURA; dy++){
+            int drawY = tiros[i].y + dy;
+            if(drawY < LIMITE_SUPERIOR_JOGO || drawY >= LIMITE_INFERIOR_JOGO) continue;
+
+            for(int dx = 0; dx < TIRO_LARGURA; dx++){
+                int drawX = tiros[i].x + dx;
+                if(drawX >= 0 && drawX < SCREEN_WIDTH){
+                    setPixel(drawX, drawY, corTiro);
+                }
+            }
+        }
+    }
+}
+
+// ===============================
 // Inimigos
 // ===============================
 void inicializarInimigos() {
@@ -149,12 +223,11 @@ void atualizarInimigos() {
         if(!listaInimigos[i].ativo)
             continue;
 
-        // Se está explodindo
         if(listaInimigos[i].explodindo > 0) {
 
             listaInimigos[i].explodindo++;
 
-            if(listaInimigos[i].explodindo > 15) { // duração explosão
+            if(listaInimigos[i].explodindo > 15) { 
                 listaInimigos[i].explodindo = 0;
 
                 listaInimigos[i].x = SCREEN_WIDTH;
@@ -171,7 +244,6 @@ void atualizarInimigos() {
             continue;
         }
 
-        // Movimento normal
         listaInimigos[i].x--;
 
         if(listaInimigos[i].x + LARGURA_INIMIGO <= 0) {
@@ -191,15 +263,44 @@ void atualizarInimigos() {
     }
 }
 
+// ===============================
+// Colisão tiros x inimigos
+// ===============================
+void verificaColisaoTiros() {
+
+    for(int i = 0; i < MAX_TIRO; i++){
+        if(!tiros[i].ativo) continue;
+
+        for(int j = 0; j < MAX_INIMIGOS; j++){
+            if(!listaInimigos[j].ativo) continue;
+            if(listaInimigos[j].explodindo > 0) continue;
+
+            if(tiros[i].x + TIRO_LARGURA > listaInimigos[j].x &&
+               tiros[i].x < listaInimigos[j].x + LARGURA_INIMIGO &&
+               tiros[i].y + TIRO_ALTURA > listaInimigos[j].y &&
+               tiros[i].y < listaInimigos[j].y + ALTURA_INIMIGO)
+            {
+                tiros[i].ativo = false; // desaparece ao colidir
+                listaInimigos[j].explodindo = 1;
+                score += 10;
+                break;
+            }
+        }
+    }
+}
+
+// ===============================
+// Explosões e desenho inimigos
+// ===============================
 void desenhaExplosao(int baseX, int baseY, int frame) {
 
     static u16 cor1;
     static u16 cor2;
 
-    cor1 = RGB5(31, 20, 0);  // laranja
-    cor2 = RGB5(31, 31, 0);  // amarelo
+    cor1 = RGB5(31, 20, 0);
+    cor2 = RGB5(31, 31, 0);
 
-    int raio = frame;  // cresce com o tempo
+    int raio = frame;
 
     for(int y = -raio; y <= raio; y++) {
 
@@ -224,7 +325,6 @@ void desenhaExplosao(int baseX, int baseY, int frame) {
         }
     }
 
-    // núcleo brilhante
     if(raio > 2) {
         DMA3COPY(
             &cor2,
@@ -241,10 +341,10 @@ void desenhaInimigos() {
     static u16 corCockpit;
     static u16 corMotor;
 
-    corCorpo   = RGB5(0, 31, 0);    // verde principal
-    corDetalhe = RGB5(0, 20, 0);    // sombra
-    corCockpit = RGB5(0, 0, 31);    // azul
-    corMotor   = RGB5(31, 15, 0);   // laranja
+    corCorpo   = RGB5(0, 31, 0);
+    corDetalhe = RGB5(0, 20, 0);
+    corCockpit = RGB5(0, 0, 31);
+    corMotor   = RGB5(31, 15, 0);
 
     for(int i = 0; i < MAX_INIMIGOS; i++) {
 
@@ -270,31 +370,20 @@ void desenhaInimigos() {
                 continue;
             }
 
-            // =========================
-            // Formato base
-            // =========================
             switch(y) {
                 case 0:
-                case 7:
-                    inicio = 5; largura = 2; break;
-
+                case 7: inicio = 5; largura = 2; break;
                 case 1:
-                case 6:
-                    inicio = 4; largura = 4; break;
-
+                case 6: inicio = 4; largura = 4; break;
                 case 2:
-                case 5:
-                    inicio = 2; largura = 8; break;
-
+                case 5: inicio = 2; largura = 8; break;
                 case 3:
-                case 4:
-                    inicio = 0; largura = 12; break;
+                case 4: inicio = 0; largura = 12; break;
             }
 
             int drawX = baseX + inicio;
             int larguraFinal = largura;
 
-            // Clipping horizontal
             if(drawX < 0) {
                 larguraFinal += drawX;
                 drawX = 0;
@@ -311,16 +400,10 @@ void desenhaInimigos() {
                 );
             }
 
-            // =========================
-            // Sombra inferior
-            // =========================
             if(y == 4 || y == 5) {
                 int sombraX = baseX + 3;
                 int sombraL = 6;
-
-                if(sombraX >= 0 &&
-                   sombraX + sombraL <= SCREEN_WIDTH) {
-
+                if(sombraX >= 0 && sombraX + sombraL <= SCREEN_WIDTH) {
                     DMA3COPY(
                         &corDetalhe,
                         &videoBuffer[drawY * SCREEN_WIDTH + sombraX],
@@ -329,16 +412,10 @@ void desenhaInimigos() {
                 }
             }
 
-            // =========================
-            // Cockpit
-            // =========================
             if(y == 3) {
                 int cockpitX = baseX + 3;
                 int cockpitL = 3;
-
-                if(cockpitX >= 0 &&
-                   cockpitX + cockpitL <= SCREEN_WIDTH) {
-
+                if(cockpitX >= 0 && cockpitX + cockpitL <= SCREEN_WIDTH) {
                     DMA3COPY(
                         &corCockpit,
                         &videoBuffer[drawY * SCREEN_WIDTH + cockpitX],
@@ -347,14 +424,9 @@ void desenhaInimigos() {
                 }
             }
 
-            // =========================
-            // Motor traseiro
-            // =========================
             if(y == 3 || y == 4) {
                 int motorX = baseX + 10;
-
                 if(motorX >= 0 && motorX < SCREEN_WIDTH) {
-
                     DMA3COPY(
                         &corMotor,
                         &videoBuffer[drawY * SCREEN_WIDTH + motorX],
@@ -367,7 +439,7 @@ void desenhaInimigos() {
 }
 
 // ===============================
-// Colisão
+// Colisão jogador x inimigo
 // ===============================
 void verificaColisoes() {
 
@@ -376,7 +448,6 @@ void verificaColisoes() {
         if(!listaInimigos[i].ativo)
             continue;
 
-        // 🔥 NÃO testa colisão se já está explodindo
         if(listaInimigos[i].explodindo > 0)
             continue;
 
@@ -412,6 +483,7 @@ void gameInit() {
     desenhaBarraInferior();
 
     inicializarInimigos();
+    inicializarTiros();
 }
 
 // ===============================
@@ -429,9 +501,14 @@ void gameUpdate(GameState* state) {
     if(keys & KEY_UP)    playerY--;
     if(keys & KEY_DOWN)  playerY++;
 
+    if(keys & KEY_A)     disparaTiro(); // botão A dispara
+
     protegeLimites();
 
     atualizarInimigos();
+    atualizarTiros();
+
+    verificaColisaoTiros();
     verificaColisoes();
 
     clearScreenArea(
@@ -441,6 +518,7 @@ void gameUpdate(GameState* state) {
     );
 
     desenhaInimigos();
+    desenhaTiros();
     desenhaPlayer();
 
     if(vidas <= 0)
