@@ -10,6 +10,7 @@
 #include "game/player.h"
 #include "game_constantes.h"
 #include "game/inimigo.h"
+#include "game/fase.h"
 
 // ===============================
 // Variáveis globais
@@ -111,6 +112,15 @@ void gameUpdate(GameState* state) {
 
     playerDesenhaVidas(&player);
     desenhaScore();
+
+    atualizarFase(score);
+
+    for(int i = 0; i < MAX_INIMIGOS; i++) {
+        if(i < getNumeroInimigos())
+            listaInimigos[i].ativo = true;
+        else
+            listaInimigos[i].ativo = false;
+    }
 
     if(player.vidas <= 0)
         *state = STATE_GAMEOVER;

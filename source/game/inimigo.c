@@ -7,7 +7,6 @@
 // ===============================
 Inimigo listaInimigos[MAX_INIMIGOS];
 int score;
-static int scoreAnterior = -1;
 
 // ===============================
 // Explosões
