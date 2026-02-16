@@ -160,18 +160,12 @@ void playerDesenhaVidas(Player* p){
 }
 
 void playerUpdate(Player* p, u16 keys) {
-    // Movimentação
     if(keys & KEY_LEFT)  p->x--;
     if(keys & KEY_RIGHT) p->x++;
     if(keys & KEY_UP)    p->y--;
     if(keys & KEY_DOWN)  p->y++;
-
-    // Disparo
     if(keys & KEY_A) playerDisparaTiro(p);
 
-    // Limites do campo
     playerProtegeLimites(p);
-
-    // Atualiza tiros
     playerAtualizaTiros(p);
 }
